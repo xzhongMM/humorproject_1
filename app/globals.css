@@ -33,14 +33,111 @@ body {
   padding: 2rem;
 }
 
-.welcome-card {
-  width: min(100%, 42rem);
-  padding: clamp(2.5rem, 8vw, 6rem);
+.list-page {
+  width: min(100%, 72rem);
+  margin: 0 auto;
+  animation: reveal 700ms ease-out both;
+}
+
+.page-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 1rem 0 2.25rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.page-header h1 {
+  max-width: none;
+  font-size: clamp(3rem, 10vw, 7rem);
+}
+
+.row-count {
+  margin: 0 0 0.5rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.record-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  gap: 1rem;
+  padding-top: 1rem;
+}
+
+.record-card,
+.status-panel {
   border: 1px solid var(--line);
   border-radius: 0.5rem;
   background: rgba(255, 255, 255, 0.52);
   box-shadow: 0 2rem 5rem rgba(23, 34, 27, 0.08);
-  animation: reveal 700ms ease-out both;
+}
+
+.record-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1rem;
+  padding: 1.25rem;
+}
+
+.record-number {
+  color: var(--muted);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+dl {
+  min-width: 0;
+  margin: 0;
+}
+
+.field + .field {
+  margin-top: 1rem;
+}
+
+dt {
+  margin-bottom: 0.25rem;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+.status-panel {
+  margin-top: 1rem;
+  padding: 2rem;
+}
+
+.status-panel strong {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.4rem;
+}
+
+.status-panel p {
+  max-width: 45rem;
+  margin: 0.75rem 0 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.error-panel {
+  border-color: rgba(154, 59, 39, 0.35);
+}
+
+.error-panel strong {
+  color: #9a3b27;
 }
 
 .eyebrow {
@@ -53,22 +150,10 @@ body {
 }
 
 h1 {
-  max-width: 8ch;
   margin: 0;
   font-family: 'Space Grotesk', sans-serif;
-  font-size: clamp(4rem, 14vw, 8rem);
   line-height: 0.86;
   letter-spacing: -0.04em;
-}
-
-.subtitle {
-  display: inline-block;
-  margin: 2rem 0 0;
-  padding: 0.65rem 0.9rem;
-  border-radius: 999px;
-  background: var(--lime);
-  font-size: 0.95rem;
-  font-weight: 500;
 }
 
 @keyframes reveal {
@@ -85,5 +170,11 @@ h1 {
 @media (max-width: 30rem) {
   .page-shell {
     padding: 1rem;
+  }
+
+  .page-header {
+    align-items: start;
+    flex-direction: column;
+    gap: 1rem;
   }
 }

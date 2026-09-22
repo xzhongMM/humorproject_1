@@ -1,27 +1,13 @@
-import { supabase } from '../lib/supabase';
+import { createClient } from '../utils/supabase/server'
+import { cookies } from 'next/headers'
 
-const tableName = process.env.SUPABASE_TABLE || 'jokes';
+const tableName = process.env.SUPABASE_TABLE ?? 'todos'
 
-function formatValue(value) {
-  if (value === null || value === undefined) {
-    return '—';
-  }
+export default async function Page() {
+  const cookieStore = await cookies()
+  const supabase = createClient(cookieStore)
 
-  if (typeof value === 'object') {
-    return JSON.stringify(value);
-  }
-
-  return String(value);
-}
-
-export default async function Home() {
-  const { data: rows = [], error } = supabase
-    ? await supabase.from(tableName).select('*')
-    : {
-        data: [],
-        error: new Error('Missing Supabase environment variables. Add them to .env.local.'),
-      };
-  const columns = rows?.length ? Object.keys(rows[0]) : [];
+  const { data: rows, error } = await supabase.from(tableName).select('*')
 
   return (
     <main className="page-shell">
@@ -31,7 +17,7 @@ export default async function Home() {
             <p className="eyebrow">Supabase collection</p>
             <h1 id="page-heading">{tableName}</h1>
           </div>
-          {!error && <p className="row-count">{rows.length} rows</p>}
+          {!error && <p className="row-count">{rows?.length ?? 0} rows</p>}
         </header>
 
         {error ? (
@@ -40,7 +26,7 @@ export default async function Home() {
             <p>{error.message}</p>
             <p>Check that SUPABASE_TABLE matches a table in your Supabase project and that its read policy allows access.</p>
           </div>
-        ) : rows.length === 0 ? (
+        ) : !rows?.length ? (
           <div className="status-panel">
             <strong>No rows yet.</strong>
             <p>Add a row to the {tableName} table in Supabase and refresh this page.</p>
@@ -51,10 +37,10 @@ export default async function Home() {
               <article className="record-card" key={row.id ?? rowIndex}>
                 <span className="record-number">{String(rowIndex + 1).padStart(2, '0')}</span>
                 <dl>
-                  {columns.map((column) => (
+                  {Object.entries(row).map(([column, value]) => (
                     <div className="field" key={column}>
                       <dt>{column.replaceAll('_', ' ')}</dt>
-                      <dd>{formatValue(row[column])}</dd>
+                      <dd>{formatValue(value)}</dd>
                     </div>
                   ))}
                 </dl>
@@ -64,5 +50,17 @@ export default async function Home() {
         )}
       </section>
     </main>
-  );
+  )
+}
+
+function formatValue(value: unknown) {
+  if (value === null || value === undefined) {
+    return '—'
+  }
+
+  if (typeof value === 'object') {
+    return JSON.stringify(value)
+  }
+
+  return String(value)
 }
