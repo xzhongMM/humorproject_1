@@ -156,6 +156,72 @@ h1 {
   letter-spacing: -0.04em;
 }
 
+.auth-shell,
+.page-shell {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 1.5rem;
+}
+
+.auth-card,
+.content-card {
+  width: min(100%, 42rem);
+  padding: clamp(1.5rem, 5vw, 3.5rem);
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 2rem 5rem rgba(23, 34, 27, 0.09);
+}
+
+.auth-card h1,
+.content-card h1 {
+  margin-bottom: 1.25rem;
+  font-size: clamp(2.5rem, 8vw, 4.5rem);
+  line-height: 1;
+}
+
+.auth-card > p:not(.eyebrow),
+.content-card > p:not(.eyebrow) {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3rem;
+  padding: 0.75rem 1.25rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: var(--ink);
+  color: white;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.primary-button:disabled { opacity: 0.6; cursor: wait; }
+.page-nav { display: flex; gap: 1rem; margin-bottom: 2.5rem; }
+.list-page > .page-nav { justify-content: flex-end; margin: 0 0 0.5rem; }
+.home-signin { display: inline-flex; align-items: center; gap: 0.65rem; padding: 0.8rem 1.1rem; border-radius: 0.55rem; background: var(--ink); color: white !important; font-weight: 700; text-decoration: none; box-shadow: 0 0.5rem 1.5rem rgba(23, 34, 27, 0.15); }
+.home-signin:hover { background: #2f4436; transform: translateY(-1px); }
+.page-nav a, .upload-label { color: var(--ink); font-weight: 700; }
+.text-button { padding: 0; border: 0; background: transparent; color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; }
+.profile-form { display: grid; gap: 0.65rem; margin-top: 1.5rem; }
+.profile-form > label { font-size: 0.85rem; font-weight: 700; }
+.profile-form > input { width: 100%; min-height: 3rem; margin-bottom: 0.75rem; padding: 0.75rem; border: 1px solid var(--line); border-radius: 0.45rem; background: white; font: inherit; }
+.profile-form .primary-button { justify-self: start; margin-top: 0.5rem; }
+.avatar-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+.avatar { width: 5rem; height: 5rem; border-radius: 50%; object-fit: cover; background: var(--lime); }
+.avatar-empty { display: grid; place-items: center; font-size: 2rem; }
+.upload-label input { display: block; max-width: 15rem; margin-top: 0.5rem; font-weight: 400; }
+.notice { padding: 0.9rem 1rem; border-radius: 0.5rem; background: rgba(215, 243, 107, 0.45); color: var(--ink) !important; }
+.form-error { color: #9a3b27 !important; }
+.form-message { color: var(--muted); font-size: 0.9rem; }
+.muted { color: var(--muted); }
+
 @keyframes reveal {
   from {
     opacity: 0;
