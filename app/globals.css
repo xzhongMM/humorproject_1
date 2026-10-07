@@ -270,6 +270,7 @@ h1 {
 .vote-btn:hover { color: var(--ink); border-color: var(--ink); }
 .vote-btn.up.active { background: var(--lime); color: var(--ink); border-color: var(--ink); }
 .vote-btn.down.active { background: #f3c7bd; color: #9a3b27; border-color: #9a3b27; }
+.vote-count { min-width: 1.5rem; margin-right: 0.25rem; font-size: 0.95rem; }
 .vote-score { min-width: 1.75rem; text-align: center; font-family: 'Space Grotesk', sans-serif; font-weight: 700; }
 .vote-error { position: absolute; top: 100%; right: 0; font-size: 0.7rem; white-space: nowrap; }
 
