@@ -252,12 +252,12 @@ h1 {
 .tab { padding: 0.5rem 1rem; border: 1px solid var(--line); border-radius: 999px; color: var(--ink); font-weight: 700; text-decoration: none; background: rgba(255,255,255,0.5); }
 .tab.active { background: var(--ink); color: white; }
 
-.meme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr)); gap: 1rem; align-items: start; padding-top: 1rem; }
-.meme-card { border: 1px solid var(--line); border-radius: 0.75rem; overflow: hidden; background: rgba(255,255,255,0.72); box-shadow: 0 1.5rem 4rem rgba(23,34,27,0.08); scroll-margin-top: 1rem; }
+.meme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr)); gap: 1rem; align-items: stretch; padding-top: 1rem; }
+.meme-card { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 0.75rem; overflow: hidden; background: rgba(255,255,255,0.72); box-shadow: 0 1.5rem 4rem rgba(23,34,27,0.08); scroll-margin-top: 1rem; }
 .meme-card:target { outline: 3px solid var(--lime); }
 .meme-frame { position: relative; background: #111; }
-.meme-frame img { display: block; width: 100%; max-height: 32rem; object-fit: contain; }
-.meme-text { margin: 0; padding: 0.9rem 1rem; background: #fbfaf4; border-bottom: 1px solid var(--line); color: var(--ink); font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; font-weight: 600; line-height: 1.35; }
+.meme-frame img { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: contain; }
+.meme-text { flex: 1; margin: 0; padding: 0.9rem 1rem; background: #fbfaf4; border-bottom: 1px solid var(--line); color: var(--ink); font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; font-weight: 600; line-height: 1.35; }
 .meme-meta { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem 0; color: var(--muted); font-size: 0.8rem; }
 .vibe-tag { display: inline-block; padding: 0.2rem 0.55rem; border-radius: 999px; background: rgba(215,243,107,0.6); color: var(--ink); font-size: 0.72rem; font-weight: 700; }
 .caption-list { list-style: none; margin: 0; padding: 0.5rem 0.5rem 0.75rem; }
