@@ -30,9 +30,8 @@ export default function VoteButtons({ captionId, userId, initialVote, initialUp,
     return (
       <div className="vote-box">
         <Link className="vote-btn" href="/login" title="Sign in to vote">▲</Link>
-        <span className="vote-count">{initialUp}</span>
+        <span className="vote-score">{initialUp - initialDown}</span>
         <Link className="vote-btn" href="/login" title="Sign in to vote">▼</Link>
-        <span className="vote-count">{initialDown}</span>
       </div>
     );
   }
@@ -68,10 +67,9 @@ export default function VoteButtons({ captionId, userId, initialVote, initialUp,
 
   return (
     <div className="vote-box">
-      <button className={vote === 1 ? "vote-btn up active" : "vote-btn up"} onClick={() => cast(1)} disabled={busy} aria-pressed={vote === 1} aria-label={`Upvote (${up})`}>▲</button>
-      <span className="vote-count">{up}</span>
-      <button className={vote === -1 ? "vote-btn down active" : "vote-btn down"} onClick={() => cast(-1)} disabled={busy} aria-pressed={vote === -1} aria-label={`Downvote (${down})`}>▼</button>
-      <span className="vote-count">{down}</span>
+      <button className={vote === 1 ? "vote-btn up active" : "vote-btn up"} onClick={() => cast(1)} disabled={busy} aria-pressed={vote === 1} aria-label="Upvote">▲</button>
+      <span className="vote-score" title={`${up} up · ${down} down`}>{up - down}</span>
+      <button className={vote === -1 ? "vote-btn down active" : "vote-btn down"} onClick={() => cast(-1)} disabled={busy} aria-pressed={vote === -1} aria-label="Downvote">▼</button>
       {error && <span className="form-error vote-error">{error}</span>}
     </div>
   );
