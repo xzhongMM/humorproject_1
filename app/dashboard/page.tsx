@@ -1,7 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
-import SignOutButton from "@/app/SignOutButton";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -18,14 +16,6 @@ export default async function DashboardPage() {
     redirect("/profile?complete=1");
   }
 
-  return (
-    <main className="page-shell">
-      <section className="content-card">
-        <nav className="page-nav"><Link href="/profile">Profile</Link><SignOutButton /></nav>
-        <p className="eyebrow">Private area</p>
-        <h1>Hello, {profile.first_name}.</h1>
-        <p>You’re signed in as {user.email}. This dashboard is only available to authenticated users.</p>
-      </section>
-    </main>
-  );
+  // Profile is complete: send them to the meme feed.
+  redirect("/");
 }

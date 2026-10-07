@@ -1,8 +1,8 @@
 import './globals.css';
 
 export const metadata = {
-  title: 'Your account',
-  description: 'A personal dashboard and profile.',
+  title: 'Lion Laughs',
+  description: 'AI meme captions for Columbia, ranked by you.',
 };
 
 export default function RootLayout({ children }) {

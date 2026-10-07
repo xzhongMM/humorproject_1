@@ -26,9 +26,9 @@ export default function LoginPage() {
   return (
     <main className="auth-shell">
       <section className="auth-card">
-        <p className="eyebrow">Your account</p>
+        <p className="eyebrow">Lion Laughs</p>
         <h1>Welcome back.</h1>
-        <p>Sign in to view your dashboard and manage your profile.</p>
+        <p>Sign in to make AI memes and vote on the funniest captions.</p>
         <button className="primary-button" onClick={signInWithGoogle}>Continue with Google</button>
         {error && <p className="form-error" role="alert">{error}</p>}
       </section>

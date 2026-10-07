@@ -19,11 +19,11 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
   return (
     <main className="page-shell">
       <section className="content-card">
-        <nav className="page-nav"><Link href="/dashboard">Dashboard</Link><SignOutButton /></nav>
+        <nav className="page-nav"><Link href="/">Meme feed</Link><SignOutButton /></nav>
         <p className="eyebrow">Your account</p>
         <h1>Profile</h1>
         <p className="muted">Signed in as {user.email}</p>
-        {params.complete && <p className="notice">Add your first and last name to continue to your dashboard.</p>}
+        {params.complete && <p className="notice">Add your first and last name to start voting on memes.</p>}
         <ProfileForm userId={user.id} firstName={profile?.first_name ?? ""} lastName={profile?.last_name ?? ""} avatarUrl={profile?.avatar_url ?? ""} />
       </section>
     </main>
