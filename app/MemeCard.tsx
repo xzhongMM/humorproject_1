@@ -1,4 +1,5 @@
 import VoteButtons from "./VoteButtons";
+import ShareButton from "./ShareButton";
 
 // One card = one photo + ONE caption. Every caption is its own meme and is voted on separately.
 export type CaptionMeme = {
@@ -34,7 +35,10 @@ export default function MemeCard({ item, userId, myVote, rank }: { item: Caption
           {item.memes && <span className="vibe-tag">{item.memes.vibe}</span>}
           <time dateTime={item.created_at}>{new Date(item.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</time>
         </div>
-        <VoteButtons captionId={item.id} userId={userId} initialVote={myVote} initialUp={item.upvotes} initialDown={item.downvotes} />
+        <div className="card-actions">
+          <VoteButtons captionId={item.id} userId={userId} initialVote={myVote} initialUp={item.upvotes} initialDown={item.downvotes} />
+          <ShareButton captionId={item.id} caption={item.content} imageUrl={item.memes?.image_url} />
+        </div>
       </div>
     </article>
   );

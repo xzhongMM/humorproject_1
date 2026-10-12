@@ -306,3 +306,18 @@ h1 {
 .daily-tag { background: var(--ink); color: white; }
 .photo-credit { margin: 0; padding: 0.35rem 1rem 0; color: var(--muted); font-size: 0.7rem; line-height: 1.3; overflow-wrap: anywhere; }
 .photo-credit a { color: inherit; }
+
+/* Share */
+.meme-card { overflow: visible; }
+.meme-card > :first-child { border-radius: 0.75rem 0.75rem 0 0; }
+.meme-frame { overflow: hidden; }
+.meme-footer { flex-wrap: wrap; }
+.card-actions { display: flex; align-items: center; gap: 0.4rem; margin-left: auto; }
+.share-box { position: relative; }
+.share-btn { color: var(--ink); }
+.share-menu { position: absolute; right: 0; bottom: calc(100% + 0.4rem); z-index: 20; display: grid; min-width: 15rem; padding: 0.35rem; border: 1px solid var(--line); border-radius: 0.6rem; background: white; box-shadow: 0 1rem 2.5rem rgba(23,34,27,0.18); }
+.share-menu > a, .share-menu > button { display: grid; gap: 0.1rem; padding: 0.55rem 0.7rem; border: 0; border-radius: 0.4rem; background: none; color: var(--ink); font: inherit; font-size: 0.9rem; font-weight: 600; text-align: left; text-decoration: none; cursor: pointer; }
+.share-menu > a:hover, .share-menu > button:hover { background: rgba(215,243,107,0.35); }
+.share-menu small { color: var(--muted); font-size: 0.72rem; font-weight: 400; }
+.single-meme { width: min(100%, 34rem); margin: 1rem auto 0; }
+.single-meme-more { text-align: center; margin-top: 1.5rem; }
