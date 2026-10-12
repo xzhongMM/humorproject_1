@@ -8,6 +8,7 @@ import { captionImage } from "@/lib/gemini";
 // Daily bot: posts 5 memes a day, whether or not anyone logs in.
 // Vercel Cron calls this once a day (see vercel.json) and sends `Authorization: Bearer $CRON_SECRET`.
 // Test it by hand:  curl -H "Authorization: Bearer <CRON_SECRET>" https://<your-app>/api/cron/daily-memes
+// Make an extra batch even if today's 5 already exist:  .../api/cron/daily-memes?force=1
 
 export const maxDuration = 120; // seconds; 5 image downloads + 5 Gemini calls
 
@@ -27,8 +28,9 @@ export async function GET(request: Request) {
   // Don't double-post if the job runs twice (retries, manual tests): top up to 5 per ~day.
   const since = new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString();
   const { count } = await db.from("memes").select("id", { count: "exact", head: true }).eq("source", "bot").gte("created_at", since);
-  const needed = MEMES_PER_DAY - (count ?? 0);
-  if (needed <= 0) return NextResponse.json({ ok: true, created: 0, note: "Today's memes are already posted." });
+  const force = new URL(request.url).searchParams.get("force") === "1"; // still requires the secret
+  const needed = force ? MEMES_PER_DAY : MEMES_PER_DAY - (count ?? 0);
+  if (needed <= 0) return NextResponse.json({ ok: true, created: 0, note: "Today's memes are already posted. Add ?force=1 to make another batch." });
 
   // Never reuse a photo.
   const { data: used } = await db.from("memes").select("image_source_url").not("image_source_url", "is", null);
