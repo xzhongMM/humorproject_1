@@ -42,7 +42,7 @@ export async function GET(request: Request) {
   for (const photo of photos) {
     try {
       const bytes = await downloadPhoto(photo);
-      const { vibe, prompt } = buildBotPrompt(topics);
+      const { vibe, prompt } = buildBotPrompt(topics, photo.kind);
       const ai = await captionImage(apiKey, bytes, photo.mime, prompt);
       if (!ai.ok) throw new Error(`Gemini failed (${ai.status})`);
 

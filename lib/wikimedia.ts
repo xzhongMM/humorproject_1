@@ -1,39 +1,87 @@
-// Finds freely licensed Columbia / Morningside / NYC photos on Wikimedia Commons.
-// Commons images are CC-licensed or public domain, so we can reuse them with credit.
+// Picks "reaction"-style meme photos for the daily bot: expressive animals, people reacting, and big emoji.
+// Photos come from Wikimedia Commons (CC-licensed / public domain) and emoji from Google's Noto Emoji
+// (Apache 2.0), so everything can be reused with credit. No copyrighted meme templates.
 
 const USER_AGENT =
   process.env.WIKIMEDIA_USER_AGENT || "LionLaughsMemeBot/1.0 (student class project; https://github.com/xzhongMM/humorproject_1)";
 
-// Mostly places and scenes, not people, so no one's face ends up in a meme without consent.
-const SEARCHES = [
-  "Columbia University Butler Library",
-  "Low Memorial Library Columbia",
-  "Columbia University campus College Walk",
-  "Alma Mater statue Columbia University",
-  "Columbia University snow campus",
-  "Columbia University Low Steps",
-  "Morningside Heights Broadway",
-  "116th Street Columbia University subway station",
-  "Morningside Park Manhattan",
-  "Riverside Park Manhattan",
-  "Cathedral of Saint John the Divine",
-  "Barnard College campus",
-  "Columbia University John Jay Hall",
-  "Central Park autumn",
-  "New York City subway car interior",
-  "New York City bodega",
-  "Columbia University Pupin Hall",
-  "Columbia University Philosophy Hall",
+// Expressive animals: the classic "this is me" meme energy (and very NYC: pigeons, rats, squirrels).
+const ANIMAL_SEARCHES = [
+  "cat yawning",
+  "surprised cat",
+  "cat staring",
+  "angry cat hissing",
+  "dog head tilt",
+  "dog sleeping funny",
+  "shiba inu",
+  "pug face",
+  "raccoon",
+  "squirrel eating",
+  "pigeon New York City",
+  "brown rat",
+  "owl staring",
+  "goat screaming",
+  "capybara",
+  "seal pup",
+  "frog close-up",
+  "sloth",
+  "otter",
+  "llama face",
+];
+
+// Adults with readable reactions. (No children, no searches for specific or famous people.)
+const PEOPLE_SEARCHES = [
+  "facepalm",
+  "man yawning",
+  "woman laughing",
+  "shocked face man",
+  "surprised woman face",
+  "student sleeping library",
+  "man thinking",
+  "woman shrugging",
+  "tired student",
+  "person screaming",
+];
+
+// Noto Emoji code points (rendered as 512px PNGs).
+const EMOJI = [
+  ["1f62d", "loudly crying face"],
+  ["1f480", "skull"],
+  ["1f644", "eye roll"],
+  ["1f62c", "grimacing face"],
+  ["1f633", "flushed face"],
+  ["1f972", "smiling face with tear"],
+  ["1f921", "clown face"],
+  ["1f60e", "sunglasses face"],
+  ["1f92f", "exploding head"],
+  ["1f971", "yawning face"],
+  ["1f97a", "pleading face"],
+  ["1fae0", "melting face"],
+  ["1f914", "thinking face"],
+  ["1f643", "upside-down face"],
+  ["1f62e", "open mouth face"],
+  ["1f928", "raised eyebrow"],
+  ["1f974", "woozy face"],
+  ["1f610", "neutral face"],
+  ["1f979", "holding back tears"],
+  ["1f92a", "zany face"],
+  ["1f913", "nerd face"],
+  ["1f9d0", "face with monocle"],
+  ["1f624", "face with steam"],
+  ["1f976", "freezing face"],
+  ["1f975", "overheated face"],
 ];
 
 export type Photo = {
-  sourceUrl: string; // Commons file page (also used to avoid repeats)
-  imageUrl: string; // ~1280px rendition we download
+  sourceUrl: string; // original page (also used to avoid repeats)
+  imageUrl: string; // the file we download
   mime: string;
-  credit: string; // "Author / License via Wikimedia Commons"
+  credit: string;
+  kind: "animal" | "person" | "emoji";
 };
 
 const stripHtml = (s = "") => s.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+const shuffle = <T,>(a: T[]) => [...a].sort(() => Math.random() - 0.5);
 
 type CommonsPage = {
   imageinfo?: {
@@ -46,7 +94,7 @@ type CommonsPage = {
   }[];
 };
 
-async function search(term: string): Promise<Photo[]> {
+async function searchCommons(term: string, kind: Photo["kind"]): Promise<Photo[]> {
   const params = new URLSearchParams({
     action: "query",
     format: "json",
@@ -58,7 +106,7 @@ async function search(term: string): Promise<Photo[]> {
     gsroffset: String(Math.floor(Math.random() * 3) * 30),
     prop: "imageinfo",
     iiprop: "url|mime|size|extmetadata",
-    iiurlwidth: "1280",
+    iiurlwidth: "960",
   });
   const res = await fetch(`https://commons.wikimedia.org/w/api.php?${params}`, {
     headers: { "User-Agent": USER_AGENT },
@@ -71,25 +119,59 @@ async function search(term: string): Promise<Photo[]> {
     const info = p.imageinfo?.[0];
     if (!info?.thumburl || !["image/jpeg", "image/png"].includes(info.mime)) return [];
     const ratio = info.width / info.height;
-    if (info.width < 800 || ratio < 0.6 || ratio > 2) return [];
+    if (info.width < 500 || ratio < 0.6 || ratio > 1.9) return [];
     const meta = info.extmetadata ?? {};
     const artist = stripHtml(meta.Artist?.value).slice(0, 80) || "Unknown author";
     const license = stripHtml(meta.LicenseShortName?.value) || "see source";
-    return [{ sourceUrl: info.descriptionurl, imageUrl: info.thumburl, mime: info.mime, credit: `${artist} / ${license} via Wikimedia Commons` }];
+    return [{
+      sourceUrl: info.descriptionurl,
+      imageUrl: info.thumburl,
+      mime: info.mime,
+      credit: `${artist} / ${license} via Wikimedia Commons`,
+      kind,
+    }];
   });
 }
 
-/** Picks `count` random photos that haven't been used before. */
+function emojiPhoto(code: string, name: string): Photo {
+  return {
+    sourceUrl: `https://github.com/googlefonts/noto-emoji/blob/main/png/512/emoji_u${code}.png`,
+    imageUrl: `https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/512/emoji_u${code}.png`,
+    mime: "image/png",
+    credit: `Noto Emoji "${name}" / Apache 2.0, Google`,
+    kind: "emoji",
+  };
+}
+
+/** Picks `count` unused reaction photos: roughly 2 animals, 2 people, 1 emoji per day. */
 export async function pickPhotos(count: number, alreadyUsed: Set<string>): Promise<Photo[]> {
-  const terms = [...SEARCHES].sort(() => Math.random() - 0.5).slice(0, Math.min(SEARCHES.length, count + 3));
+  const plan: Photo["kind"][] = shuffle(["animal", "animal", "person", "person", "emoji"]);
+  while (plan.length < count) plan.push("animal");
+
+  const animalTerms = shuffle(ANIMAL_SEARCHES);
+  const peopleTerms = shuffle(PEOPLE_SEARCHES);
   const picked: Photo[] = [];
-  for (const term of terms) {
-    if (picked.length >= count) break;
-    const fresh = (await search(term)).filter((p) => !alreadyUsed.has(p.sourceUrl));
-    if (fresh.length === 0) continue;
-    const choice = fresh[Math.floor(Math.random() * fresh.length)];
-    alreadyUsed.add(choice.sourceUrl);
-    picked.push(choice); // one photo per search term = more variety
+
+  for (const kind of plan.slice(0, count)) {
+    let choice: Photo | undefined;
+
+    if (kind === "emoji") {
+      const fresh = shuffle(EMOJI).map(([c, n]) => emojiPhoto(c, n)).filter((p) => !alreadyUsed.has(p.sourceUrl));
+      choice = fresh[0];
+    } else {
+      const terms = kind === "animal" ? animalTerms : peopleTerms;
+      // Try a few search terms until one gives an unused photo.
+      for (let i = 0; i < 3 && !choice && terms.length; i++) {
+        const term = terms.shift()!;
+        const fresh = (await searchCommons(term, kind)).filter((p) => !alreadyUsed.has(p.sourceUrl));
+        choice = fresh[Math.floor(Math.random() * fresh.length)];
+      }
+    }
+
+    if (choice) {
+      alreadyUsed.add(choice.sourceUrl);
+      picked.push(choice);
+    }
   }
   return picked;
 }
