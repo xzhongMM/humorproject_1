@@ -33,6 +33,7 @@ async function fetchListing(): Promise<RedditPost[]> {
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: "grant_type=client_credentials",
+      signal: AbortSignal.timeout(8000),
     });
     if (tokenRes.ok) {
       const { access_token } = await tokenRes.json();
@@ -41,7 +42,7 @@ async function fetchListing(): Promise<RedditPost[]> {
     }
   }
 
-  const res = await fetch(url, { headers, cache: "no-store" });
+  const res = await fetch(url, { headers, cache: "no-store", signal: AbortSignal.timeout(8000) });
   if (!res.ok) throw new Error(`Reddit ${res.status}`);
   const json = await res.json();
   return (json?.data?.children ?? []).map((c: { data: RedditPost }) => c.data);

@@ -7,15 +7,24 @@ const MODELS = [
 const RETRYABLE = new Set([404, 429, 500, 503]);
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function callGemini(apiKey: string, body: string) {
+async function callGemini(apiKey: string, body: string, timeoutMs = 30000) {
   let last = { status: 0, detail: "" };
   for (const model of MODELS) {
     for (let attempt = 0; attempt < 2; attempt++) {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
-        body,
-      });
+      let res: Response;
+      try {
+        res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+          body,
+          signal: AbortSignal.timeout(timeoutMs),
+        });
+      } catch (e) {
+        // Timed out or network error: try the next model instead of hanging.
+        last = { status: 504, detail: e instanceof Error ? e.message : String(e) };
+        console.error(`Gemini timeout/network error (${model})`, last.detail);
+        break;
+      }
       if (res.ok) return { ok: true as const, status: res.status, model, json: await res.json() };
       last = { status: res.status, detail: await res.text() };
       console.error(`Gemini error (${model}, attempt ${attempt + 1})`, last.status, last.detail);

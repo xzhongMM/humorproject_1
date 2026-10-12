@@ -111,8 +111,9 @@ async function searchCommons(term: string, kind: Photo["kind"]): Promise<Photo[]
   const res = await fetch(`https://commons.wikimedia.org/w/api.php?${params}`, {
     headers: { "User-Agent": USER_AGENT },
     cache: "no-store",
-  });
-  if (!res.ok) return [];
+    signal: AbortSignal.timeout(8000),
+  }).catch(() => null);
+  if (!res?.ok) return [];
   const json = await res.json();
   const pages: CommonsPage[] = json?.query?.pages ?? [];
   return pages.flatMap((p) => {
@@ -147,27 +148,36 @@ function emojiPhoto(code: string, name: string): Photo {
 export async function pickPhotos(count: number, alreadyUsed: Set<string>): Promise<Photo[]> {
   const plan: Photo["kind"][] = shuffle(["animal", "animal", "person", "person", "emoji"]);
   while (plan.length < count) plan.push("animal");
+  const wanted = plan.slice(0, count);
+  const need = (k: Photo["kind"]) => wanted.filter((x) => x === k).length;
 
-  const animalTerms = shuffle(ANIMAL_SEARCHES);
-  const peopleTerms = shuffle(PEOPLE_SEARCHES);
-  const picked: Photo[] = [];
+  // Run all searches at the same time (not one after another) so the bot finishes quickly.
+  const searchMany = async (terms: string[], kind: Photo["kind"], n: number) =>
+    n === 0 ? [] : (await Promise.all(shuffle(terms).slice(0, n + 2).map((t) => searchCommons(t, kind)))).map(shuffle);
+  const [animalPools, peoplePools] = await Promise.all([
+    searchMany(ANIMAL_SEARCHES, "animal", need("animal")),
+    searchMany(PEOPLE_SEARCHES, "person", need("person")),
+  ]);
 
-  for (const kind of plan.slice(0, count)) {
-    let choice: Photo | undefined;
-
-    if (kind === "emoji") {
-      const fresh = shuffle(EMOJI).map(([c, n]) => emojiPhoto(c, n)).filter((p) => !alreadyUsed.has(p.sourceUrl));
-      choice = fresh[0];
-    } else {
-      const terms = kind === "animal" ? animalTerms : peopleTerms;
-      // Try a few search terms until one gives an unused photo.
-      for (let i = 0; i < 3 && !choice && terms.length; i++) {
-        const term = terms.shift()!;
-        const fresh = (await searchCommons(term, kind)).filter((p) => !alreadyUsed.has(p.sourceUrl));
-        choice = fresh[Math.floor(Math.random() * fresh.length)];
+  // Take one photo per search term (more variety), skipping anything already used.
+  const takeFrom = (pools: Photo[][]) => {
+    for (const pool of pools) {
+      const choice = pool.find((p) => !alreadyUsed.has(p.sourceUrl));
+      if (choice) {
+        pools.splice(pools.indexOf(pool), 1);
+        return choice;
       }
     }
+    return undefined;
+  };
+  const emojis = shuffle(EMOJI).map(([c, n]) => emojiPhoto(c, n));
 
+  const picked: Photo[] = [];
+  for (const kind of wanted) {
+    const choice =
+      kind === "emoji" ? emojis.find((p) => !alreadyUsed.has(p.sourceUrl))
+      : kind === "animal" ? takeFrom(animalPools) ?? takeFrom(peoplePools)
+      : takeFrom(peoplePools) ?? takeFrom(animalPools);
     if (choice) {
       alreadyUsed.add(choice.sourceUrl);
       picked.push(choice);
@@ -177,7 +187,7 @@ export async function pickPhotos(count: number, alreadyUsed: Set<string>): Promi
 }
 
 export async function downloadPhoto(photo: Photo): Promise<Buffer> {
-  const res = await fetch(photo.imageUrl, { headers: { "User-Agent": USER_AGENT } });
+  const res = await fetch(photo.imageUrl, { headers: { "User-Agent": USER_AGENT }, signal: AbortSignal.timeout(15000) });
   if (!res.ok) throw new Error(`Image download failed (${res.status})`);
   return Buffer.from(await res.arrayBuffer());
 }

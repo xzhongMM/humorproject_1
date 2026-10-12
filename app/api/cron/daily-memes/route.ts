@@ -10,7 +10,7 @@ import { captionImage } from "@/lib/gemini";
 // Test it by hand:  curl -H "Authorization: Bearer <CRON_SECRET>" https://<your-app>/api/cron/daily-memes
 // Make an extra batch even if today's 5 already exist:  .../api/cron/daily-memes?force=1
 
-export const maxDuration = 120; // seconds; 5 image downloads + 5 Gemini calls
+export const maxDuration = 300; // seconds (Vercel Hobby max). Normal runs take well under a minute.
 
 const MEMES_PER_DAY = 5;
 
@@ -41,44 +41,47 @@ export async function GET(request: Request) {
   const created: { caption: string; credit: string }[] = [];
   const errors: string[] = [];
 
-  for (const photo of photos) {
-    try {
-      const bytes = await downloadPhoto(photo);
-      const { vibe, prompt } = buildBotPrompt(topics, photo.kind);
-      const ai = await captionImage(apiKey, bytes, photo.mime, prompt);
-      if (!ai.ok) throw new Error(`Gemini failed (${ai.status})`);
+  // Make all memes at the same time instead of one by one.
+  await Promise.all(
+    photos.map(async (photo) => {
+      try {
+        const bytes = await downloadPhoto(photo);
+        const { vibe, prompt } = buildBotPrompt(topics, photo.kind);
+        const ai = await captionImage(apiKey, bytes, photo.mime, prompt);
+        if (!ai.ok) throw new Error(`Gemini failed (${ai.status})`);
 
-      const ext = photo.mime === "image/png" ? "png" : "jpg";
-      const path = `bot/${crypto.randomUUID()}.${ext}`;
-      const { error: uploadError } = await db.storage.from("memes").upload(path, bytes, { contentType: photo.mime });
-      if (uploadError) throw new Error(uploadError.message);
-      const { data: { publicUrl } } = db.storage.from("memes").getPublicUrl(path);
+        const ext = photo.mime === "image/png" ? "png" : "jpg";
+        const path = `bot/${crypto.randomUUID()}.${ext}`;
+        const { error: uploadError } = await db.storage.from("memes").upload(path, bytes, { contentType: photo.mime });
+        if (uploadError) throw new Error(uploadError.message);
+        const { data: { publicUrl } } = db.storage.from("memes").getPublicUrl(path);
 
-      const { data: meme, error: memeError } = await db
-        .from("memes")
-        .insert({
-          user_id: null,
-          source: "bot",
-          image_path: path,
-          image_url: publicUrl,
-          image_source_url: photo.sourceUrl,
-          image_credit: photo.credit,
-          vibe: vibe.label,
-          prompt,
-          model: ai.model,
-        })
-        .select("id")
-        .single();
-      if (memeError) throw new Error(memeError.message);
+        const { data: meme, error: memeError } = await db
+          .from("memes")
+          .insert({
+            user_id: null,
+            source: "bot",
+            image_path: path,
+            image_url: publicUrl,
+            image_source_url: photo.sourceUrl,
+            image_credit: photo.credit,
+            vibe: vibe.label,
+            prompt,
+            model: ai.model,
+          })
+          .select("id")
+          .single();
+        if (memeError) throw new Error(memeError.message);
 
-      const { error: captionError } = await db.from("captions").insert({ meme_id: meme.id, user_id: null, content: ai.caption });
-      if (captionError) throw new Error(captionError.message);
+        const { error: captionError } = await db.from("captions").insert({ meme_id: meme.id, user_id: null, content: ai.caption });
+        if (captionError) throw new Error(captionError.message);
 
-      created.push({ caption: ai.caption, credit: photo.credit });
-    } catch (e) {
-      errors.push(`${photo.sourceUrl}: ${e instanceof Error ? e.message : String(e)}`);
-    }
-  }
+        created.push({ caption: ai.caption, credit: photo.credit });
+      } catch (e) {
+        errors.push(`${photo.sourceUrl}: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }),
+  );
 
   if (errors.length) console.error("Daily meme bot errors:", errors);
   return NextResponse.json({ ok: errors.length === 0, created: created.length, topicsFound: topics.length, memes: created, errors });
