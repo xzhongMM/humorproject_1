@@ -21,3 +21,23 @@ export function buildPrompt(vibeId: string) {
   ].join(" ");
   return { vibe, prompt };
 }
+
+// Prompt for the daily bot: a stock campus photo + what r/columbia is talking about this week.
+export function buildBotPrompt(topics: string[]) {
+  const vibe = VIBES[Math.floor(Math.random() * VIBES.length)];
+  const sample = [...topics].sort(() => Math.random() - 0.5).slice(0, 5);
+  const topicBlock = sample.length
+    ? `Here is what Columbia students are posting about on r/columbia this week (inspiration only):\n${sample.map((t) => `- ${t}`).join("\n")}\n` +
+      "Connect the photo to ONE of these topics if one fits naturally; otherwise use everyday Columbia student life."
+    : "Base the joke on everyday Columbia student life.";
+  const prompt = [
+    "You are a meme caption writer for college students at Columbia University in New York City.",
+    `Write ONE short, funny meme caption for the attached photo in the vibe "${vibe.label}" (${vibe.hint}).`,
+    topicBlock,
+    "Rules: never quote a post word for word; never mention usernames, real names, or identifiable people;",
+    "don't mock any individual or group; avoid politics, protests, tragedies, crime, and health crises;",
+    "the caption must relate to what is visible in the photo; max 120 characters; no hashtags; no emojis.",
+    'Return JSON: {"caption": "..."}.',
+  ].join("\n");
+  return { vibe, prompt };
+}

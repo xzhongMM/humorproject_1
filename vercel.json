@@ -1,0 +1,5 @@
+{
+  "crons": [
+    { "path": "/api/cron/daily-memes", "schedule": "0 14 * * *" }
+  ]
+}

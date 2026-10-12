@@ -22,7 +22,7 @@ export default async function FeedPage({ searchParams }: { searchParams: Promise
   // Every caption is its own meme card (photo + that one caption), voted on separately.
   let query = supabase
     .from("captions")
-    .select("id, content, upvotes, downvotes, created_at, memes(id, image_url, vibe)")
+    .select("id, content, upvotes, downvotes, created_at, memes(id, image_url, vibe, source, image_credit, image_source_url)")
     .limit(30);
   if (sort === "new") {
     query = query.order("created_at", { ascending: false });

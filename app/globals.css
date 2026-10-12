@@ -301,3 +301,8 @@ h1 {
 .meme-footer { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 1rem; }
 .meme-footer .meme-meta { padding: 0; gap: 0.6rem; }
 .rank-badge { position: absolute; top: 0.6rem; left: 0.6rem; z-index: 1; padding: 0.2rem 0.6rem; border-radius: 999px; background: var(--lime); color: var(--ink); font-family: 'Space Grotesk', sans-serif; font-weight: 700; }
+
+/* Daily bot memes */
+.daily-tag { background: var(--ink); color: white; }
+.photo-credit { margin: 0; padding: 0.35rem 1rem 0; color: var(--muted); font-size: 0.7rem; line-height: 1.3; overflow-wrap: anywhere; }
+.photo-credit a { color: inherit; }
