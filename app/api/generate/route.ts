@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { buildPrompt } from "@/lib/vibes";
-import { isAdmin } from "@/lib/admin";
 
 // Tried in order. If a model is overloaded (503), rate-limited (429) or retired (404), we move on to the next one.
 const MODELS = [
@@ -30,15 +29,14 @@ async function callGemini(apiKey: string, body: string) {
   }
   return { ok: false as const, ...last };
 }
-const DAILY_LIMIT = 50; // admin safety cap; keeps usage inside Gemini's free tier
+const DAILY_LIMIT = 10; // per user; keeps everyone inside Gemini's free tier
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_BYTES = 5 * 1024 * 1024;
 
 export async function POST(request: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  // Only admins can create memes. Everyone else gets a plain 404 so the endpoint stays hidden.
-  if (!user || !(await isAdmin(supabase))) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!user) return NextResponse.json({ error: "Sign in to make memes." }, { status: 401 });
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return NextResponse.json({ error: "GEMINI_API_KEY is not set on the server." }, { status: 500 });

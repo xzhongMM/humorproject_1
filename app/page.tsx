@@ -2,7 +2,6 @@ import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import SignOutButton from "@/app/SignOutButton";
 import MemeCard, { type CaptionMeme } from "./MemeCard";
-import { isAdmin } from "@/lib/admin";
 
 type Sort = "liked" | "today" | "new";
 const TABS: { id: Sort; label: string }[] = [
@@ -19,7 +18,6 @@ export default async function FeedPage({ searchParams }: { searchParams: Promise
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const userId = user?.id ?? null;
-  const admin = user ? await isAdmin(supabase) : false;
 
   // Every caption is its own meme card (photo + that one caption), voted on separately.
   let query = supabase
@@ -56,7 +54,7 @@ export default async function FeedPage({ searchParams }: { searchParams: Promise
       <nav className="page-nav feed-nav">
         {user ? (
           <>
-            {admin && <Link className="home-signin" href="/create">+ Make a meme</Link>}
+            <Link className="home-signin" href="/create">+ Make a meme</Link>
             <Link href="/profile">Profile</Link>
             <SignOutButton />
           </>
@@ -87,7 +85,7 @@ export default async function FeedPage({ searchParams }: { searchParams: Promise
       {!loadError && items.length === 0 && (
         <div className="status-panel">
           <strong>{sort === "today" ? "No captions in the last 24 hours yet." : "No memes yet."}</strong>
-          <p>{admin ? <Link href="/create">Be the first — upload a photo.</Link> : "New memes drop soon. Check back!"}</p>
+          <p>{user ? <Link href="/create">Be the first — upload a photo.</Link> : "Sign in and upload a photo to get things started."}</p>
         </div>
       )}
 
