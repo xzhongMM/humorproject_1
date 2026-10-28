@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { isAllowedUser } from "@/lib/config";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -32,10 +33,15 @@ export async function GET(request: Request) {
       },
     });
 
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      return dashboardResponse;
+      // Signup restrictions (allowed_signup_domains / whitelisted_emails, edited in the admin app).
+      if (await isAllowedUser(data.user.id, data.user.email)) return dashboardResponse;
+      await supabase.auth.signOut(); // clears the session cookies set on dashboardResponse
+      const refused = NextResponse.redirect(new URL("/login?error=not_allowed", origin));
+      dashboardResponse.cookies.getAll().forEach((cookie) => refused.cookies.set(cookie));
+      return refused;
     }
     authError = error.message;
   }

@@ -2,7 +2,6 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { VIBES } from "@/lib/vibes";
 
 // Shrink big phone photos before upload: faster, cheaper for the AI, and fits storage limits.
 async function downscale(file: File, max = 1280): Promise<Blob> {
@@ -17,11 +16,11 @@ async function downscale(file: File, max = 1280): Promise<Blob> {
   );
 }
 
-export default function CreateForm() {
+export default function CreateForm({ vibes }: { vibes: { id: string; label: string }[] }) {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
-  const [vibe, setVibe] = useState<string>(VIBES[0].id);
+  const [vibe, setVibe] = useState<string>(vibes[0]?.id ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -62,7 +61,7 @@ export default function CreateForm() {
 
       <fieldset className="vibe-picker" disabled={busy}>
         <legend>Vibe</legend>
-        {VIBES.map((v) => (
+        {vibes.map((v) => (
           <label key={v.id} className={vibe === v.id ? "vibe-chip active" : "vibe-chip"}>
             <input type="radio" name="vibe" value={v.id} checked={vibe === v.id} onChange={() => setVibe(v.id)} />
             {v.label}

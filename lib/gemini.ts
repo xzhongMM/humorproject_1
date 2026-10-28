@@ -1,15 +1,16 @@
 // Shared Gemini helper used by the upload route and the daily bot.
 
 // Tried in order. If a model is overloaded (503), rate-limited (429) or retired (404), we move on to the next one.
-const MODELS = [
+// Fallback list: the live list comes from llm_models (see loadModels in lib/config.ts).
+export const MODELS = [
   ...new Set([process.env.GEMINI_MODEL || "gemini-3.8-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite"]),
 ];
 const RETRYABLE = new Set([404, 429, 500, 503]);
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function callGemini(apiKey: string, body: string, timeoutMs = 30000) {
+async function callGemini(apiKey: string, models: readonly string[], body: string, timeoutMs = 30000) {
   let last = { status: 0, detail: "" };
-  for (const model of MODELS) {
+  for (const model of models) {
     for (let attempt = 0; attempt < 2; attempt++) {
       let res: Response;
       try {
@@ -36,14 +37,24 @@ async function callGemini(apiKey: string, body: string, timeoutMs = 30000) {
   return { ok: false as const, model: "", json: null, ...last };
 }
 
+// raw/usage/latencyMs are kept so the generation can be logged (see lib/generation-log.ts).
+type CallInfo = { raw: unknown; inputTokens: number | null; outputTokens: number | null; latencyMs: number };
 export type CaptionResult =
-  | { ok: true; caption: string; model: string; status: number }
-  | { ok: false; caption: ""; model: string; status: number };
+  | ({ ok: true; caption: string; model: string; status: number } & CallInfo)
+  | ({ ok: false; caption: ""; model: string; status: number } & CallInfo);
 
 /** Sends one image + prompt to Gemini and returns a single caption. */
-export async function captionImage(apiKey: string, bytes: Buffer, mimeType: string, prompt: string): Promise<CaptionResult> {
+export async function captionImage(
+  apiKey: string,
+  bytes: Buffer,
+  mimeType: string,
+  prompt: string,
+  models: readonly string[] = MODELS,
+): Promise<CaptionResult> {
+  const started = Date.now();
   const gemini = await callGemini(
     apiKey,
+    models,
     JSON.stringify({
       contents: [{ parts: [{ inline_data: { mime_type: mimeType, data: bytes.toString("base64") } }, { text: prompt }] }],
       generationConfig: {
@@ -53,7 +64,13 @@ export async function captionImage(apiKey: string, bytes: Buffer, mimeType: stri
       },
     }),
   );
-  if (!gemini.ok) return { ok: false, caption: "", model: "", status: gemini.status };
+  const info: CallInfo = {
+    raw: gemini.json,
+    inputTokens: gemini.json?.usageMetadata?.promptTokenCount ?? null,
+    outputTokens: gemini.json?.usageMetadata?.candidatesTokenCount ?? null,
+    latencyMs: Date.now() - started,
+  };
+  if (!gemini.ok) return { ok: false, caption: "", model: "", status: gemini.status, ...info };
 
   let caption = "";
   try {
@@ -67,6 +84,6 @@ export async function captionImage(apiKey: string, bytes: Buffer, mimeType: stri
     caption = "";
   }
   return caption
-    ? { ok: true, caption, model: gemini.model, status: gemini.status }
-    : { ok: false, caption: "", model: gemini.model, status: 502 };
+    ? { ok: true, caption, model: gemini.model, status: gemini.status, ...info }
+    : { ok: false, caption: "", model: gemini.model, status: 502, ...info };
 }

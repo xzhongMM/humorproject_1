@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import { buildPrompt } from "@/lib/vibes";
 import { captionImage } from "@/lib/gemini";
+import { CHAINS, logGeneration } from "@/lib/generation-log";
+import { loadModels, loadPrompt, loadVibes } from "@/lib/config";
 
 const DAILY_LIMIT = 10; // per user; keeps everyone inside Gemini's free tier
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -22,6 +23,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Upload a JPEG, PNG, or WebP image under 5 MB." }, { status: 400 });
   }
 
+  // Vibes and models are edited by admins (terms / llm_models), so check against the live lists.
+  const [vibes, models] = await Promise.all([loadVibes(CHAINS.upload), loadModels()]);
+  const vibe = vibes.find((v) => v.id === vibeId);
+  if (!vibe) return NextResponse.json({ error: "That vibe isn't available anymore. Refresh and pick another." }, { status: 400 });
+  if (!models.length) {
+    return NextResponse.json({ error: "Meme making is paused: no AI model is turned on right now. Try again later." }, { status: 503 });
+  }
+
   // Simple per-user daily limit.
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const { count } = await supabase
@@ -35,9 +44,10 @@ export async function POST(request: Request) {
 
   // 1. Ask Gemini for captions.
   const bytes = Buffer.from(await file.arrayBuffer());
-  const { vibe, prompt } = buildPrompt(vibeId);
-  const gemini = await captionImage(apiKey, bytes, file.type, prompt);
+  const prompt = await loadPrompt(CHAINS.upload, { vibe });
+  const gemini = await captionImage(apiKey, bytes, file.type, prompt, models);
   if (!gemini.ok) {
+    await logGeneration({ chain: CHAINS.upload, userId: user.id, prompt, ai: gemini });
     const busy = gemini.status === 503 || gemini.status === 429;
     return NextResponse.json(
       {
@@ -56,7 +66,10 @@ export async function POST(request: Request) {
   const ext = file.type.split("/")[1].replace("jpeg", "jpg");
   const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
   const { error: uploadError } = await supabase.storage.from("memes").upload(path, bytes, { contentType: file.type });
-  if (uploadError) return NextResponse.json({ error: uploadError.message }, { status: 500 });
+  if (uploadError) {
+    await logGeneration({ chain: CHAINS.upload, userId: user.id, prompt, ai: gemini, error: uploadError.message });
+    return NextResponse.json({ error: uploadError.message }, { status: 500 });
+  }
   const { data: { publicUrl } } = supabase.storage.from("memes").getPublicUrl(path);
 
   // 3. Save the meme (photo + the prompt used) and its one caption. RLS checks these as the signed-in user.
@@ -65,14 +78,24 @@ export async function POST(request: Request) {
     .insert({ user_id: user.id, image_path: path, image_url: publicUrl, vibe: vibe.label, prompt, model: gemini.model })
     .select("id")
     .single();
-  if (memeError) return NextResponse.json({ error: memeError.message }, { status: 500 });
+  if (memeError) {
+    await logGeneration({ chain: CHAINS.upload, userId: user.id, prompt, ai: gemini, error: memeError.message });
+    return NextResponse.json({ error: memeError.message }, { status: 500 });
+  }
 
   const { data: saved, error: captionError } = await supabase
     .from("captions")
     .insert({ meme_id: meme.id, user_id: user.id, content: caption })
     .select("id")
     .single();
-  if (captionError) return NextResponse.json({ error: captionError.message }, { status: 500 });
+  const image = { path, url: publicUrl, caption };
+  if (captionError) {
+    await logGeneration({ chain: CHAINS.upload, userId: user.id, prompt, ai: gemini, memeId: meme.id, image, error: captionError.message });
+    return NextResponse.json({ error: captionError.message }, { status: 500 });
+  }
+
+  // 4. Record the generation for the admin area (generation_requests, llm_responses, images).
+  await logGeneration({ chain: CHAINS.upload, userId: user.id, prompt, ai: gemini, memeId: meme.id, image });
 
   return NextResponse.json({ id: saved.id, caption });
 }

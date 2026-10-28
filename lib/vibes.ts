@@ -9,9 +9,10 @@ export const VIBES = [
 ] as const;
 
 export type VibeId = (typeof VIBES)[number]["id"];
+type VibeText = { label: string; hint: string };
 
-export function buildPrompt(vibeId: string) {
-  const vibe = VIBES.find((v) => v.id === vibeId) ?? VIBES[0];
+// `vibe` can be passed in when it comes from the database (see lib/config.ts).
+export function buildPrompt(vibeId: string, vibe: VibeText = VIBES.find((v) => v.id === vibeId) ?? VIBES[0]) {
   const prompt = [
     "You are a meme caption writer for college students at Columbia University in New York City.",
     `Write ONE short, funny meme caption for the attached photo in the vibe "${vibe.label}" (${vibe.hint}).`,
@@ -24,8 +25,11 @@ export function buildPrompt(vibeId: string) {
 
 // Prompt for the daily bot: a reaction photo (animal / person / emoji) + what r/columbia is talking about.
 // The photo is the *reaction*; the caption supplies the Columbia situation ("me when...", "POV:", etc.).
-export function buildBotPrompt(topics: string[], kind: "animal" | "person" | "emoji" = "animal") {
-  const vibe = VIBES[Math.floor(Math.random() * VIBES.length)];
+export function buildBotPrompt(
+  topics: string[],
+  kind: "animal" | "person" | "emoji" = "animal",
+  vibe: VibeText = VIBES[Math.floor(Math.random() * VIBES.length)],
+) {
   const sample = [...topics].sort(() => Math.random() - 0.5).slice(0, 5);
   const topicBlock = sample.length
     ? `Here is what Columbia students are posting about on r/columbia this week (inspiration only):\n${sample.map((t) => `- ${t}`).join("\n")}\n` +

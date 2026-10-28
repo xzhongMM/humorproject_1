@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase-admin";
 import { fetchColumbiaTopics } from "@/lib/reddit";
 import { pickPhotos, downloadPhoto } from "@/lib/wikimedia";
-import { buildBotPrompt } from "@/lib/vibes";
 import { captionImage } from "@/lib/gemini";
+import { CHAINS, logGeneration } from "@/lib/generation-log";
+import { loadModels, loadPrompt, loadVibes, pickWeighted } from "@/lib/config";
 
 // Daily bot: posts 5 memes a day, whether or not anyone logs in.
 // Vercel Cron calls this once a day (see vercel.json) and sends `Authorization: Bearer $CRON_SECRET`.
@@ -36,6 +37,10 @@ export async function GET(request: Request) {
   const { data: used } = await db.from("memes").select("image_source_url").not("image_source_url", "is", null);
   const usedUrls = new Set((used ?? []).map((r) => r.image_source_url as string));
 
+  // Vibes, weights and models come from the admin tables (see lib/config.ts).
+  const [vibes, models] = await Promise.all([loadVibes(CHAINS.bot), loadModels()]);
+  if (!models.length) return NextResponse.json({ error: "No AI model is turned on in llm_models." }, { status: 503 });
+
   const [topics, photos] = await Promise.all([fetchColumbiaTopics(), pickPhotos(needed, usedUrls)]);
 
   const created: { caption: string; credit: string }[] = [];
@@ -46,9 +51,13 @@ export async function GET(request: Request) {
     photos.map(async (photo) => {
       try {
         const bytes = await downloadPhoto(photo);
-        const { vibe, prompt } = buildBotPrompt(topics, photo.kind);
-        const ai = await captionImage(apiKey, bytes, photo.mime, prompt);
-        if (!ai.ok) throw new Error(`Gemini failed (${ai.status})`);
+        const vibe = pickWeighted(vibes);
+        const prompt = await loadPrompt(CHAINS.bot, { vibe, kind: photo.kind, topics });
+        const ai = await captionImage(apiKey, bytes, photo.mime, prompt, models);
+        if (!ai.ok) {
+          await logGeneration({ chain: CHAINS.bot, userId: null, prompt, ai });
+          throw new Error(`Gemini failed (${ai.status})`);
+        }
 
         const ext = photo.mime === "image/png" ? "png" : "jpg";
         const path = `bot/${crypto.randomUUID()}.${ext}`;
@@ -75,6 +84,8 @@ export async function GET(request: Request) {
 
         const { error: captionError } = await db.from("captions").insert({ meme_id: meme.id, user_id: null, content: ai.caption });
         if (captionError) throw new Error(captionError.message);
+
+        await logGeneration({ chain: CHAINS.bot, userId: null, prompt, ai, memeId: meme.id, image: { path, url: publicUrl, caption: ai.caption } });
 
         created.push({ caption: ai.caption, credit: photo.credit });
       } catch (e) {

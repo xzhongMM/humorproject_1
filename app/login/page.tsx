@@ -8,7 +8,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     const message = new URLSearchParams(window.location.search).get("error");
-    if (message) setError(message);
+    if (message === "not_allowed") {
+      setError("That account isn't on the guest list yet. Sign in with your school email, or ask an admin to add yours.");
+    } else if (message) setError(message);
   }, []);
 
   async function signInWithGoogle() {
