@@ -55,6 +55,7 @@ export default async function FeedPage({ searchParams }: { searchParams: Promise
         {user ? (
           <>
             <Link className="home-signin" href="/create">+ Make a meme</Link>
+            <Link href="/activity">My posts &amp; likes</Link>
             <Link href="/profile">Profile</Link>
             <SignOutButton />
           </>

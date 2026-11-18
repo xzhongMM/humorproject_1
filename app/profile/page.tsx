@@ -19,7 +19,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
   return (
     <main className="page-shell">
       <section className="content-card">
-        <nav className="page-nav"><Link href="/">Meme feed</Link><SignOutButton /></nav>
+        <nav className="page-nav"><Link href="/">Meme feed</Link><Link href="/activity">My posts &amp; likes</Link><SignOutButton /></nav>
         <p className="eyebrow">Your account</p>
         <h1>Profile</h1>
         <p className="muted">Signed in as {user.email}</p>
